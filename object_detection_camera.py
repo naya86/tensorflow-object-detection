@@ -92,44 +92,44 @@ category_index = label_map_util.create_categories_from_labelmap(PATH_TO_LABELS, 
 print(category_index)
 
 
-# import cv2
-# import numpy as np
-# import pandas as pd
+import cv2
+import numpy as np
+import pandas as pd
 
-# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
 
-# while True : 
-#     ret, image_np : cap.read()
-#     # ( 1, X, X, 3 )  = X X 는 카메라 해상도
-#     image_np_expended = np.expand_dims(image_np, axis=0)
+while True : 
+    ret, image_np : cap.read()
+    # ( 1, X, X, 3 )  = X X 는 카메라 해상도
+    image_np_expended = np.expand_dims(image_np, axis=0)
     
-#     input_tensor = tf.convert_to_tensor(np.expand_dims(image_np,0), dtype=tf.float32)
-#     detections, prediction_dict, shapes = detect_fn(input_tensor)
+    input_tensor = tf.convert_to_tensor(np.expand_dims(image_np,0), dtype=tf.float32)
+    detections, prediction_dict, shapes = detect_fn(input_tensor)
 
-#     print(detections)
+    print(detections)
 
-#     # mscoco_label_map.pbtxt 파일을 보면, id가 1부터 시작하니까
-#     # offset을 1로 만들어 준다.
-#     label_id_offset = 1
+    # mscoco_label_map.pbtxt 파일을 보면, id가 1부터 시작하니까
+    # offset을 1로 만들어 준다.
+    label_id_offset = 1
 
-#     image_np_with_detections = image_np.copy()
+    image_np_with_detections = image_np.copy()
 
-#     viz_utils.visualize_boxes_and_labels_on_image_array(image_np_with_detections, detections['detection_boxes'][0].numpy(),
-#     (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
-#     detections['detection_scores'][0].numpy(),
-#     category_index, use_normalized_coordinates = True, max_boxes_to_draw = 200,
-#     min_score_thresh = 0.6 )
+    viz_utils.visualize_boxes_and_labels_on_image_array(image_np_with_detections, detections['detection_boxes'][0].numpy(),
+    (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
+    detections['detection_scores'][0].numpy(),
+    category_index, use_normalized_coordinates = True, max_boxes_to_draw = 200,
+    min_score_thresh = 0.6 )
 
 
-#     #cv2.imshow('object detection', image_np_with_detections)    
-#     # 관제시스템의 경우 디스플레이 크면 거기에 맞춰 조절해서 보여주도록
-#     cv2.imshow('object detection', cv2.resize( image_np_with_detections,(800,600)))
+    #cv2.imshow('object detection', image_np_with_detections)    
+    # 관제시스템의 경우 디스플레이 크면 거기에 맞춰 조절해서 보여주도록
+    cv2.imshow('object detection', cv2.resize( image_np_with_detections,(800,600)))
 
-#     if cv2.waitKey(25) & 0xFF==27 :
-#         break
+    if cv2.waitKey(25) & 0xFF==27 :
+        break
 
-# cap.release()
-# cv2.destroyAllWindows()
+cap.release()
+cv2.destroyAllWindows()
 
 
 
