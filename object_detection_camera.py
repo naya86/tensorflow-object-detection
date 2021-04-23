@@ -1,142 +1,162 @@
-import tensorflow as tf
-import tarfile   # 압축
-import urllib.request
 import os
-
-import tensorflow as tf
-print(tf.__version__)
-
+import pathlib
+import numpy as np
+import os
+import six.moves.urllib as urllib
+import sys
 import tarfile
-import urllib.request
-
-import os
-
-# 모델 다운로드하고 압축 푸는 코드
-MODEL_DATE = '20200711'
-MODEL_NAME = 'ssd_mobilenet_v2_320x320_coco17_tpu-8'
-MODEL_TAR_FILENAME = MODEL_NAME + '.tar.gz'
-
-MODELS_DIR = 'data/models'
-
-# 모델 다운로드 받을 수 있는 곳
-# https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md
-MODELS_DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/tf2/'
-MODEL_DOWNLOAD_LINK = MODELS_DOWNLOAD_BASE + MODEL_DATE + '/' + MODEL_TAR_FILENAME
-
-PATH_TO_MODEL_TAR = os.path.join('data/models', MODEL_TAR_FILENAME)
-PATH_TO_CKPT = os.path.join('data/models', os.path.join(MODEL_NAME, 'checkpoint/'))
-PATH_TO_CFG = os.path.join('data/models', os.path.join(MODEL_NAME, 'pipeline.config'))
-
-# 모델받아서 압축풀기
-if not os.path.exists(PATH_TO_CKPT):
-    print('Downloading model. This may take a while... ', end='')
-    urllib.request.urlretrieve(MODEL_DOWNLOAD_LINK, PATH_TO_MODEL_TAR)
-    tar_file = tarfile.open(PATH_TO_MODEL_TAR)
-    tar_file.extractall(MODELS_DIR)
-    tar_file.close()
-    os.remove(PATH_TO_MODEL_TAR)
-    print('Done')
-
-# 레이블 다운로드 받기
-LABEL_FILENAME = 'mscoco_label_map.pbtxt'
-LABELS_DOWNLOAD_BASE = \
-    'https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/'
-PATH_TO_LABELS = os.path.join(MODELS_DIR, os.path.join(MODEL_NAME, LABEL_FILENAME))
-if not os.path.exists(PATH_TO_LABELS):
-    print('Downloading label file... ', end='')
-    urllib.request.urlretrieve(LABELS_DOWNLOAD_BASE + LABEL_FILENAME, PATH_TO_LABELS)
-    print('Done')
-
-
-## 모델 로딩!
+import tensorflow as tf
+import zipfile
+from collections import defaultdict
+from io import StringIO
+from matplotlib import pyplot as plt
+from PIL import Image
+from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
-from object_detection.utils import config_util
-from object_detection.utils import visualization_utils as viz_utils
-from object_detection.builders import model_builder
+from object_detection.utils import visualization_utils as vis_util
+import cv2
+import time
+##ssd 
+
+# patch tf1 into `utils.ops`
+utils_ops.tf = tf.compat.v1
+
+# Patch the location of gfile
+tf.gfile = tf.io.gfile
 
 
-# GPU의 Dynamic Memory Allocation을 활성화 시키는 코드 ( GPU 이용)
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-
-
-
-# config 로드하고, 모델 빌드
-configs = config_util.get_configs_from_pipeline_file(PATH_TO_CFG)
-model_config = configs['model']
-detection_model = model_builder.build(model_config=model_config, is_training=False)
-
-
-# Restore Checkpoint
-ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
-ckpt.restore( os.path.join(PATH_TO_CKPT, 'ckpt-0') ).expect_partial()
-
-
-
-@tf.function
-def detect_fn(image):
-    # 함수의 주석
-    """Detect Objects in Image."""
-    image, shapes = detection_model.preprocess(image)
-    prediction_dict = detection_model.predict(image, shapes)
-    detection = detection_model.postprocess(prediction_dict, shapes)
-
-    return detection, prediction_dic, tf.reshape(shapes,[-1])
-
-
-
-## 레이블 맵 데이터 로딩 ( Load label map data )
-category_index = label_map_util.create_categories_from_labelmap(PATH_TO_LABELS, use_display_name=True)
-    
+# Loading label map  내 로컬에 설치된 TFOD 경로
+# List of the strings that is used to add correct label for each box.
+PATH_TO_LABELS = 'C:\\Users\\5-8\\Documents\\cho\\Tensorflow\\models\\research\\object_detection\\data\\mscoco_label_map.pbtxt'
+category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 print(category_index)
 
 
-import cv2
-import numpy as np
-import pandas as pd
+# Loader
+def load_model(model_name):
+  base_url = 'http://download.tensorflow.org/models/object_detection/'
+  model_file = model_name + '.tar.gz'
+  model_dir = tf.keras.utils.get_file(
+    fname=model_name, 
+    origin=base_url + model_file,
+    untar=True)
 
-cap = cv2.VideoCapture(0)
+  model_dir = pathlib.Path(model_dir)/"saved_model"
 
-while True : 
-    ret, image_np : cap.read()
-    # ( 1, X, X, 3 )  = X X 는 카메라 해상도
-    image_np_expended = np.expand_dims(image_np, axis=0)
+  model = tf.saved_model.load(str(model_dir))
+
+  return model
+
+  # 함수 테스트
+model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
+detection_model = load_model(model_name)
+print( detection_model.signatures['serving_default'].inputs )
+print( detection_model.signatures['serving_default'].output_dtypes )
+print( detection_model.signatures['serving_default'].output_shapes )
+
+
+# 디텍션
+def run_inference_for_single_image(model, image):
+  # 넘파이 어레이로 바꿔준다.
+  image = np.asarray(image)
+  # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
+  input_tensor = tf.convert_to_tensor(image) # 거대한 행렬을 tensor라 한다.
+  # The model expects a batch of images, so add an axis with `tf.newaxis`.
+  input_tensor = input_tensor[tf.newaxis,...]
+
+  # Run inference
+  model_fn = model.signatures['serving_default']
+  output_dict = model_fn(input_tensor)
+
+  # All outputs are batches tensors.
+  # Convert to numpy arrays, and take index [0] to remove the batch dimension.
+  # We're only interested in the first num_detections.
+  num_detections = int(output_dict.pop('num_detections'))
+  output_dict = {key:value[0, :num_detections].numpy() 
+                 for key,value in output_dict.items()}
+  output_dict['num_detections'] = num_detections
+
+  # detection_classes should be ints.
+  output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
+   
+  # Handle models with masks:
+  if 'detection_masks' in output_dict:
+    output_dict['detection_masks'] = tf.convert_to_tensor(output_dict['detection_masks'], dtype=tf.float32)
+    output_dict['detection_boxes'] = tf.convert_to_tensor(output_dict['detection_boxes'], dtype=tf.float32)
+    # Reframe the the bbox mask to the image size.
+    detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
+              output_dict['detection_masks'], output_dict['detection_boxes'],
+               image.shape[0], image.shape[1])  
+    detection_masks_reframed = tf.cast(detection_masks_reframed > 0.5,
+                                       tf.uint8)
+    output_dict['detection_masks_reframed'] = detection_masks_reframed.numpy()
     
-    input_tensor = tf.convert_to_tensor(np.expand_dims(image_np,0), dtype=tf.float32)
-    detections, prediction_dict, shapes = detect_fn(input_tensor)
-
-    print(detections)
-
-    # mscoco_label_map.pbtxt 파일을 보면, id가 1부터 시작하니까
-    # offset을 1로 만들어 준다.
-    label_id_offset = 1
-
-    image_np_with_detections = image_np.copy()
-
-    viz_utils.visualize_boxes_and_labels_on_image_array(image_np_with_detections, detections['detection_boxes'][0].numpy(),
-    (detections['detection_classes'][0].numpy() + label_id_offset).astype(int),
-    detections['detection_scores'][0].numpy(),
-    category_index, use_normalized_coordinates = True, max_boxes_to_draw = 200,
-    min_score_thresh = 0.6 )
+  return output_dict
 
 
-    #cv2.imshow('object detection', image_np_with_detections)    
-    # 관제시스템의 경우 디스플레이 크면 거기에 맞춰 조절해서 보여주도록
-    cv2.imshow('object detection', cv2.resize( image_np_with_detections,(800,600)))
+ # 보여라 이미지를
+def show_inference(model, image_np):
+  # the array based representation of the image will be used later in order to prepare the
+  # result image with boxes and labels on it.
+  
+  # Actual detection.
+  output_dict = run_inference_for_single_image(model, image_np)
+  # Visualization of the results of a detection.
+  
+  vis_util.visualize_boxes_and_labels_on_image_array(
+      image_np,
+      np.array(output_dict['detection_boxes']),
+      output_dict['detection_classes'],
+      output_dict['detection_scores'],
+      category_index,
+      instance_masks=output_dict.get('detection_masks_reframed',None),
+      use_normalized_coordinates=True,
+      line_thickness=8)
 
-    if cv2.waitKey(25) & 0xFF==27 :
-        break
+  cv2.imshow('result', image_np) 
 
-cap.release()
-cv2.destroyAllWindows()
+## 이미지 경로에 있는 이미지 실행
+# PATH_TO_TEST_IMAGES_DIR = pathlib.Path('data\\images')
+# TEST_IMAGE_PATHS = sorted( list(PATH_TO_TEST_IMAGES_DIR.glob("*.jpg")) )
 
-
-
-
-
+# for image_path in TEST_IMAGE_PATHS:
+#   show_inference(detection_model, image_path)
 
 
+## 비디오를 실행하는 코드로
+
+cap = cv2.VideoCapture('data/videos/video.mp4')
+
+if cap.isOpened() == False :    # True False로 값이 나옴 isOpened
+    print('Error opening video stream of file')
+
+else :
+    # 반복문 필요이유 : 비디오는 여러 사진으로 구성되어 있으니까.! 여러개니까
+    while cap.isOpened() :
+        
+        # 사진을 한장씩 가져와서 
+
+        ret, frame = cap.read()       # ret 에는 True , False 로 가져오고 , frame 에는 numpy 로 가져옴(이미지). 비디오에 관한 프레임이 있으면 ret은 True
+
+        # 제대로 사진 가져왔으면, 화면에 표시
+        if ret == True :
+            # 이 부분을 모델 추론, 화면에 보여주는 코드로 변경
+            # cv2.imshow('frame', frame)
+            start_time = time.time() # 추론시간 계산.
+            show_inference(detection_model, frame)     #  가공이 필요할때는 이 부분에 가공을 해주면 된다.
+            end_time = time.time()
+            print(end_time - start_time)
+
+            #키보드에서 esc키를 누르면 exit 하라
+            if cv2.waitKey(25) & 0xFF == 27 :
+                break
+
+        else : 
+            break
+
+    cap.release()  # 비디오파일 닫는 느낌
+
+    cv2.destroyAllWindows()
 
 
 
