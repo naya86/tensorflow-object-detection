@@ -27,7 +27,7 @@ tf.gfile = tf.io.gfile
 
 # Loading label map  내 로컬에 설치된 TFOD 경로
 # List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = 'C:\\Users\\na880\\Documents\\cho\\Tensorflow\models\\research\\object_detection\\data\\mscoco_label_map.pbtxt'
+PATH_TO_LABELS = 'C:\\Users\\5-8\\Documents\\cho\\Tensorflow\\models\\research\\object_detection\\data\\mscoco_label_map.pbtxt'
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 print(category_index)
 

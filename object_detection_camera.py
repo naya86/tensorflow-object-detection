@@ -27,7 +27,7 @@ tf.gfile = tf.io.gfile
 
 # Loading label map  내 로컬에 설치된 TFOD 경로
 # List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = 'C:\\Users\\na880\\Documents\\cho\\Tensorflow\models\\research\\object_detection\\data\\mscoco_label_map.pbtxt'
+PATH_TO_LABELS = 'C:\\Users\\5-8\\Documents\\cho\\Tensorflow\models\\research\\object_detection\\data\\mscoco_label_map.pbtxt'
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 print(category_index)
 
@@ -112,7 +112,7 @@ def show_inference(model, image_np):
       instance_masks=output_dict.get('detection_masks_reframed',None),
       use_normalized_coordinates=True,
       line_thickness=8)
-
+  #out.write(image_np)  저장코드
   cv2.imshow('result', image_np) 
 
 ## 이미지 경로에 있는 이미지 실행
@@ -131,6 +131,10 @@ if cap.isOpened() == False :    # True False로 값이 나옴 isOpened
     print('Error opening video stream of file')
 
 else :
+    ## 저장코드##
+    # frame_width = int(cap.get(3))   #  넓이가져오는거 3  
+    # frame_height = int(cap.get(4))
+    #out = cv2.VideoWriter('data/videos/output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (frame_width, frame_height) )
     # 반복문 필요이유 : 비디오는 여러 사진으로 구성되어 있으니까.! 여러개니까
     while cap.isOpened() :
         
