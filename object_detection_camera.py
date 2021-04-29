@@ -1,7 +1,6 @@
 import os
 import pathlib
 import numpy as np
-import os
 import six.moves.urllib as urllib
 import sys
 import tarfile
@@ -112,8 +111,9 @@ def show_inference(model, image_np):
       instance_masks=output_dict.get('detection_masks_reframed',None),
       use_normalized_coordinates=True,
       line_thickness=8)
-  #out.write(image_np)  저장코드
+  
   cv2.imshow('result', image_np) 
+  # return image_np # 저장시 리턴
 
 ## 이미지 경로에 있는 이미지 실행
 # PATH_TO_TEST_IMAGES_DIR = pathlib.Path('data\\images')
@@ -125,16 +125,28 @@ def show_inference(model, image_np):
 
 ## 비디오를 실행하는 코드로
 
-cap = cv2.VideoCapture('data/videos/video.mp4')
+cap = cv2.VideoCapture('data/videos/dashcam2.mp4')
 
 if cap.isOpened() == False :    # True False로 값이 나옴 isOpened
     print('Error opening video stream of file')
 
 else :
-    ## 저장코드##
+    # # 저장코드##
     # frame_width = int(cap.get(3))   #  넓이가져오는거 3  
     # frame_height = int(cap.get(4))
-    #out = cv2.VideoWriter('data/videos/output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (frame_width, frame_height) )
+
+    # # 사이즈를 반으로 줄이는 방법
+    # if int(frame_width / 2) % 2 == 0:
+    #     frame_width = int(frame_width / 2)
+    # else :
+    #     frame_width = int(frame_width / 2) + 1
+    # if int(frame_height / 2) % 2 == 0:
+    #     frame_height = int(frame_height / 2)
+    # else :
+    #     frame_height = int(frame_height / 2) + 1
+    # out = cv2.VideoWriter('data/videos/output.mp4', cv2.VideoWriter_fourcc(*'H264'), 10, (frame_width, frame_height) )#스트림릿에서 실행은 fourcc(*'H264')
+    
+    
     # 반복문 필요이유 : 비디오는 여러 사진으로 구성되어 있으니까.! 여러개니까
     while cap.isOpened() :
         
@@ -147,7 +159,11 @@ else :
             # 이 부분을 모델 추론, 화면에 보여주는 코드로 변경
             # cv2.imshow('frame', frame)
             start_time = time.time() # 추론시간 계산.
-            show_inference(detection_model, frame)     #  가공이 필요할때는 이 부분에 가공을 해주면 된다.
+            # 저장 하려고 SHOW_INFER를 변수로 받음
+            show_inference(detection_model, frame)  #  가공이 필요할때는 이 부분에 가공을 해주면 된다.
+            # video = cv2.resize(video, ( frame_width , frame_height ),
+            #                 fx=0,fy=0, interpolation = cv2.INTER_CUBIC) #저장시 위와같이 사이즈조절
+            # out.write(video)  #저장코드
             end_time = time.time()
             print(end_time - start_time)
 

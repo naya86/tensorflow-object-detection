@@ -85,7 +85,22 @@ all_classes = get_classes('yolo/data/coco_classes.txt')
 
 ## 비디오를 실행하는 코드로
 
-cap = cv2.VideoCapture('data/videos/video.mp4')
+cap = cv2.VideoCapture('data/videos/dashcam2.mp4')
+
+# 저장코드##
+# frame_width = int(cap.get(3))   #  넓이가져오는거 3  
+# frame_height = int(cap.get(4))
+
+# # 사이즈를 반으로 줄이는 방법
+# if int(frame_width / 2) % 2 == 0:
+#     frame_width = int(frame_width / 2)
+# else :
+#     frame_width = int(frame_width / 2) + 1
+# if int(frame_height / 2) % 2 == 0:
+#     frame_height = int(frame_height / 2)
+# else :
+#     frame_height = int(frame_height / 2) + 1
+# out = cv2.VideoWriter('data/videos/output.mp4', cv2.VideoWriter_fourcc(*'H264'), 10, (frame_width, frame_height) )#스트림릿에서 실행은 fourcc(*'H264')
 
 
 
@@ -107,6 +122,11 @@ else :
             start_time = time.time() # 추론시간 계산.
             result = detect_image( frame, yolo, all_classes)
             cv2.imshow('result', result)     #  가공이 필요할때는 이 부분에 가공을 해주면 된다.
+            # 저장
+            # result = cv2.resize(result, ( frame_width , frame_height ),
+            #                 fx=0,fy=0, interpolation = cv2.INTER_CUBIC) #저장시 위와같이 사이즈조절
+            # out.write(result)  #저장코드
+            
             end_time = time.time()
             print(end_time - start_time)
 

@@ -82,12 +82,13 @@ yolo = YOLO(0.6, 0.5)
 
 all_classes = get_classes('yolo/data/coco_classes.txt')
 
-image = cv2.imread('yolo/images/test/bike2.JPG')
+image = cv2.imread('data/images/image2.jpg')
 
 result_image = detect_image( image, yolo, all_classes)
 
 cv2.imshow('result', result_image)
-
+# 이미지 저장
+# cv2.imwrite('data/images/ch_yolo_image2.jpg', result_image)
 
 cv2.waitKey()
 cv2.destroyAllWindows()
