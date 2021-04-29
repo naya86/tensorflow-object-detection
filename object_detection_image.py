@@ -123,16 +123,24 @@ def show_inference(model, image_path):
       use_normalized_coordinates=True,
       line_thickness=8)
 
-  cv2.imshow(str(image_path), image_np)
-            #"result"
+  cv2.imshow(str(image_path), image_np) #"result"
+  #저장하기 위해 리턴
+  return image_np
+           
 
 ### 함수테스트 
-PATH_TO_TEST_IMAGES_DIR = pathlib.Path('data\\images')
-TEST_IMAGE_PATHS = sorted( list(PATH_TO_TEST_IMAGES_DIR.glob("*.jpg")) )
+# 여러이미지 보이기
+# PATH_TO_TEST_IMAGES_DIR = pathlib.Path('data\\images')
+# TEST_IMAGE_PATHS = sorted( list(PATH_TO_TEST_IMAGES_DIR.glob("*.jpg")) )
 
-for image_path in TEST_IMAGE_PATHS:
-  show_inference(detection_model, image_path)
+# for image_path in TEST_IMAGE_PATHS:
+#   show_inference(detection_model, image_path)
 
+# 하나 이미지 보이기
+image_path = ('data/images/image2.jpg')
+img = show_inference(detection_model, image_path) #저장위해 img로 받음
+# 저장
+cv2.imwrite('data/images/ch_image2.jpg', img)
 
 cv2.waitKey()
 cv2.destroyAllWindows()
